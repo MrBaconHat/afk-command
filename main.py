@@ -158,7 +158,7 @@ async def on_message(message: discord.Message):
 
         timing_text = ''
 
-        year = (active_duration_timing.days // 365) % 10
+        year = (active_duration_timing.days // 365)
         month = (active_duration_timing.days // 30) % 30
         week = (active_duration_timing.days // 7) % 7
         day = active_duration_timing.days // 86400
