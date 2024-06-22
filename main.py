@@ -9,7 +9,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 intents.message_content = True
 
 
-BOT_TOKEN = 'your bot token here'
+BOT_TOKEN = "your bot token here.."
 
 
 def saveDataToJson(ctx, reason):
@@ -76,7 +76,7 @@ class dispMentions(discord.ui.View):
             self.back_button.disabled = True
             self.back_button.style = discord.ButtonStyle.gray
 
-    @discord.ui.button(label="←", style=discord.ButtonStyle.blurple)
+    @discord.ui.button(emoji="⬅️", style=discord.ButtonStyle.blurple)
     async def back_button(self, interaction: discord.Interaction, button: discord.ui.button):
         if button:
             pass
@@ -93,7 +93,7 @@ class dispMentions(discord.ui.View):
 
         await interaction.response.edit_message(view=view, embed=embed)
 
-    @discord.ui.button(label="→", style=discord.ButtonStyle.blurple)
+    @discord.ui.button(emoji="➡️", style=discord.ButtonStyle.blurple)
     async def forward_button(self, interaction: discord.Interaction, button: discord.ui.button):
         if button:
             pass
@@ -109,6 +109,12 @@ class dispMentions(discord.ui.View):
                             number1=number_1, number2=number_2)
 
         await interaction.response.edit_message(view=view, embed=embed)
+
+    @discord.ui.button(emoji="⏹️", style=discord.ButtonStyle.blurple)
+    async def stop_button(self, interaction: discord.Interaction, button: discord.ui.button):
+        embed = self.create_embed(number1=self.number1, number2=self.number2)
+
+        await interaction.response.edit_message(embed=embed, view=None)
 
     def create_embed(self, number1, number2):
 
@@ -196,9 +202,9 @@ async def on_message(message: discord.Message):
 
         view = dispMentions(collection=mentions_list, number2=6, number1=0)
         await message.reply(content=f"Welcome back, {message.author.name}! I removed your AFK. "
-                                           f"You were AFK for {timing_text}",
-                                   view=view if len(mentions_list) > 0 else None,
-                                   embed=embed if len(mentions_list) > 0 else None)
+                                    f"You were AFK for {timing_text}",
+                            view=view if len(mentions_list) > 0 else None,
+                            embed=embed if len(mentions_list) > 0 else None)
         clearUserFromAFK(message.author.id)
 
     user_id_from_ping = re.search(r"<@(\d+)>", message.content)
@@ -215,8 +221,8 @@ async def on_message(message: discord.Message):
 
     if user_id in data_json["afk_data"]:
 
-        username = data_json["afk_data"][f"{message.author.id}"]["author_name"]
-        reason = data_json["afk_data"][f"{message.author.id}"]["reason"]
+        username = data_json["afk_data"][f"{user_id}"]["author_name"]
+        reason = data_json["afk_data"][f"{user_id}"]["reason"]
         storePingerInformation(message, ping_receiver=user_id)
 
         await message.reply(content=f"{username} is AFK globally: {reason}")
