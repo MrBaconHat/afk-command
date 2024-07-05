@@ -9,7 +9,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 intents.message_content = True
 
 
-BOT_TOKEN = "your bot token here.."
+BOT_TOKEN = "Please enter your bot token here..."
 
 
 def saveDataToJson(ctx, reason):
@@ -59,7 +59,7 @@ def clearUserFromAFK(user_id):
 
 class dispMentions(discord.ui.View):
 
-    def __init__(self, collection: list, number1, number2, button_press_counts=0):
+    def __init__(self, collection: list, number1, number2, author_id, button_press_counts=0):
         super().__init__()
 
         self.total_pings = len(collection) // 6
@@ -67,72 +67,125 @@ class dispMentions(discord.ui.View):
         self.data_list = collection
         self.number1 = number1
         self.number2 = number2
+        self.author_id = author_id
 
         if button_press_counts >= self.total_pings:
             self.forward_button.disabled = True
             self.forward_button.style = discord.ButtonStyle.gray
 
+            self.last_page_button.disabled = True
+            self.last_page_button.style = discord.ButtonStyle.gray
+
         if button_press_counts <= 0:
             self.back_button.disabled = True
             self.back_button.style = discord.ButtonStyle.gray
 
+            self.first_page_button.disabled = True
+            self.first_page_button.style = discord.ButtonStyle.grey
+
+    @discord.ui.button(emoji="⏪", style=discord.ButtonStyle.blurple)
+    async def first_page_button(self, interaction: discord.Interaction, button: discord.ui.button):
+        if not self.check_author(interaction.user.id, self.author_id):
+            await interaction.response.send_message("This is not your button", ephemeral=True)
+            return
+
+        self.number1 = 0
+        self.number2 = 6
+
+        embed = self.create_embed(self.number1, self.number2, 0)
+        view = dispMentions(collection=self.data_list, button_press_counts=0,
+                            number1=self.number1, number2=self.number2, author_id=self.author_id)
+        await interaction.response.edit_message(view=view, embed=embed)
+
     @discord.ui.button(emoji="⬅️", style=discord.ButtonStyle.blurple)
     async def back_button(self, interaction: discord.Interaction, button: discord.ui.button):
-        if button:
-            pass
+        if not self.check_author(interaction.user.id, self.author_id):
+            await interaction.response.send_message("This is not your button", ephemeral=True)
+            return
 
         self.total_button_press_count -= 1
 
         number_1 = self.number1 - 6
         number_2 = self.number2 - 6
 
-        embed = self.create_embed(number1=number_1, number2=number_2)
+        embed = self.create_embed(number_1, number_2, self.total_button_press_count)
 
         view = dispMentions(collection=self.data_list, button_press_counts=self.total_button_press_count,
-                            number1=number_1, number2=number_2)
+                            number1=number_1, number2=number_2, author_id=self.author_id)
 
         await interaction.response.edit_message(view=view, embed=embed)
 
     @discord.ui.button(emoji="➡️", style=discord.ButtonStyle.blurple)
     async def forward_button(self, interaction: discord.Interaction, button: discord.ui.button):
-        if button:
-            pass
+        if not self.check_author(interaction.user.id, self.author_id):
+            await interaction.response.send_message("This is not your button", ephemeral=True)
+            return
 
         number_1 = self.number2
         number_2 = self.number2 + 6
 
         self.total_button_press_count += 1
 
-        embed = self.create_embed(number1=number_1, number2=number_2)
+        embed = self.create_embed(number_1, number_2, self.total_button_press_count)
 
         view = dispMentions(collection=self.data_list, button_press_counts=self.total_button_press_count,
-                            number1=number_1, number2=number_2)
+                            number1=number_1, number2=number_2, author_id=self.author_id)
 
         await interaction.response.edit_message(view=view, embed=embed)
 
+    @discord.ui.button(emoji="⏩", style=discord.ButtonStyle.blurple)
+    async def last_page_button(self, interaction: discord.Interaction, button: discord.ui.button):
+        if not self.check_author(interaction.user.id, self.author_id):
+            await interaction.response.send_message("This is not your button", ephemeral=True)
+            return
+
+        while True:
+
+            number1 = self.number2
+            number2 = self.number2 + 6
+
+            if not len(self.data_list[number1:number2]):
+                number1 = self.number2 - 6
+                number2 = self.number2
+                embed = self.create_embed(number1, number2, self.total_pings)
+                view = dispMentions(collection=self.data_list, button_press_counts=self.total_pings,
+                                    number1=number1, number2=number2, author_id=self.author_id)
+                await interaction.response.edit_message(view=view, embed=embed)
+                return False
+
+            else:
+                self.number1 = number1
+                self.number2 = number2
+
     @discord.ui.button(emoji="⏹️", style=discord.ButtonStyle.blurple)
     async def stop_button(self, interaction: discord.Interaction, button: discord.ui.button):
-        embed = self.create_embed(number1=self.number1, number2=self.number2)
+        if not self.check_author(interaction.user.id, self.author_id):
+            await interaction.response.send_message("This is not your button", ephemeral=True)
+            return
+        await interaction.response.edit_message(view=None)
 
-        await interaction.response.edit_message(embed=embed, view=None)
-
-    def create_embed(self, number1, number2):
+    def create_embed(self, number1, number2, button_press_count):
 
         embed = discord.Embed(
             title=f"You received {len(self.data_list)} mentions",
             description=None,
             color=discord.Color.blurple()
         )
-        embed.set_footer(text=f"({self.total_button_press_count}/{self.total_pings})")
+        embed.set_footer(text=f"({button_press_count}/{self.total_pings})")
+        print(number1, number2)
         for data in self.data_list[number1:number2]:
             embed.add_field(
-                name=f"{data.get("username")}, <t:{data.get("sendAt")}:R>",
+                name=f"By {data.get("username")}, <t:{data.get("sendAt")}:R>",
                 value=f"[Click to view message]({data.get("messageLink")})"
             )
         return embed
 
+    @staticmethod
+    def check_author(interacter, cmd_author):
+        return interacter == cmd_author
 
-@bot.command()
+
+@bot.command(name="afk")
 async def afk(ctx, reason='AFK'):
 
     saveDataToJson(ctx, reason)
@@ -185,7 +238,7 @@ async def on_message(message: discord.Message):
 
         for value, string, strings in timing_text_msgs:
             if value >= 1:
-                timing_text = f'{value} {strings if value > 1 else string}'
+                timing_text = f'{value if value > 1 else "A"} {strings if value > 1 else string}'
                 break
 
         embed = discord.Embed(
@@ -196,11 +249,13 @@ async def on_message(message: discord.Message):
         embed.set_footer(text=f"(0/{len(mentions_list) // 6})")
         for ping_data in mentions_list[0:6]:
             embed.add_field(
-                name=f"**{ping_data.get("username", None)}** <t:{ping_data.get("sendAt")}:R>",
+                name=f"By **{ping_data.get("username", None)}** <t:{ping_data.get("sendAt")}:R>",
                 value=f"[Click to view message]({ping_data.get("messageLink", None)})"
             )
 
-        view = dispMentions(collection=mentions_list, number2=6, number1=0)
+        print(f"length: {len(mentions_list)} bool: {len(mentions_list) > 0}")
+
+        view = dispMentions(collection=mentions_list, number2=6, number1=0, author_id=message.author.id)
         await message.reply(content=f"Welcome back, {message.author.name}! I removed your AFK. "
                                     f"You were AFK for {timing_text}",
                             view=view if len(mentions_list) > 0 else None,
@@ -231,6 +286,7 @@ async def on_message(message: discord.Message):
 
 @bot.event
 async def on_ready():
+    await bot.tree.sync()
     print("Successfully logged in as:", bot.user.name)
 
 try:
