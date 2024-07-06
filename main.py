@@ -9,11 +9,10 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 intents.message_content = True
 
 
-BOT_TOKEN = "Please enter your bot token here..."
-
+BOT_TOKEN = "enter your token here..."
 
 def saveDataToJson(ctx, reason):
-    with open('user_data.json') as load_file:
+    with open('user_data.json', 'r') as load_file:
         data_json = json.load(load_file)
 
     if ctx.author.id in data_json['afk_data']:
@@ -139,23 +138,13 @@ class dispMentions(discord.ui.View):
             await interaction.response.send_message("This is not your button", ephemeral=True)
             return
 
-        while True:
+        number2 = self.number2 = len(self.data_list)
+        number1 = self.number2 - 6
 
-            number1 = self.number2
-            number2 = self.number2 + 6
-
-            if not len(self.data_list[number1:number2]):
-                number1 = self.number2 - 6
-                number2 = self.number2
-                embed = self.create_embed(number1, number2, self.total_pings)
-                view = dispMentions(collection=self.data_list, button_press_counts=self.total_pings,
-                                    number1=number1, number2=number2, author_id=self.author_id)
-                await interaction.response.edit_message(view=view, embed=embed)
-                return False
-
-            else:
-                self.number1 = number1
-                self.number2 = number2
+        embed = self.create_embed(number1, number2, self.total_pings)
+        view = dispMentions(collection=self.data_list, button_press_counts=self.total_pings,
+                            number1=number1, number2=number2, author_id=self.author_id)
+        await interaction.response.edit_message(view=view, embed=embed)
 
     @discord.ui.button(emoji="⏹️", style=discord.ButtonStyle.blurple)
     async def stop_button(self, interaction: discord.Interaction, button: discord.ui.button):
@@ -293,4 +282,3 @@ try:
     bot.run(BOT_TOKEN)
 except discord.errors.LoginFailure:
     print("\nYou've provided incorrect token. Please enter the correct bot token.\n")
-
